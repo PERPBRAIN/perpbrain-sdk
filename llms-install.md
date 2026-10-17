@@ -93,6 +93,28 @@ In Cursor **Settings → MCP**, add the same block under `mcpServers` (stdio tra
 
 Restart the editor after saving.
 
+### Cline
+
+Open Cline's **MCP Servers → Installed → Configure MCP Servers** (this edits `cline_mcp_settings.json`) and add:
+
+```json
+{
+  "mcpServers": {
+    "perpbrain": {
+      "command": "node",
+      "args": ["REPO_ROOT/bin/perpbrain-mcp.mjs"],
+      "env": {
+        "PERPBRAIN_HL_NETWORK": "mainnet"
+      },
+      "disabled": false,
+      "autoApprove": []
+    }
+  }
+}
+```
+
+The path must be absolute; the server works from any working directory. On Windows use forward slashes or escaped backslashes in the path. Cline reloads the server when the file is saved.
+
 ## Step 6 — Verify tools in the client
 
 After the server connects, the client should list **exactly these 12 tools** (names only):
