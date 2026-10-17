@@ -1,6 +1,6 @@
 /** Read-only info queries. Every result carries data age. No order path. */
 
-import { InfoClient } from "./info.ts";
+import { InfoClient, postJson } from "./info.ts";
 
 export const STALE_AFTER_MS = 20_000;
 export const MAX_BOOK_LEVELS = 20;
@@ -173,8 +173,8 @@ export function parseL2Levels(value: unknown, depth: number): { bids: Level[]; a
   return { bids, asks };
 }
 
-export function markets(client: InfoClient, nowMs: number, receivedMs = nowMs): MarketsResult {
-  const payload = expectRecord(client.post({ type: "meta" }), "meta");
+export async function markets(client: InfoClient, nowMs: number, receivedMs = nowMs): Promise<MarketsResult> {
+  const payload = expectRecord(await postJson(client, { type: "meta" }), "meta");
   const rows = expectList(payload.universe, "universe").map((item) => {
     const body = expectRecord(item, "market");
     return {
@@ -186,17 +186,17 @@ export function markets(client: InfoClient, nowMs: number, receivedMs = nowMs): 
   return { markets: rows, ...aged(payload, nowMs, receivedMs) };
 }
 
-export function orderBook(
+export async function orderBook(
   client: InfoClient,
   coin: string,
   nowMs: number,
   depth = 20,
   receivedMs = nowMs,
-): BookResult {
+): Promise<BookResult> {
   if (coin === "") {
     throw new Error("market is required");
   }
-  const payload = expectRecord(client.post({ type: "l2Book", coin }), "l2 book");
+  const payload = expectRecord(await postJson(client, { type: "l2Book", coin }), "l2 book");
   if (payload.coin !== coin) {
     throw new Error("order book coin does not match the request");
   }
@@ -204,16 +204,16 @@ export function orderBook(
   return { coin, ...levels, ...aged(payload, nowMs, receivedMs) };
 }
 
-export function funding(
+export async function funding(
   client: InfoClient,
   coin: string,
   nowMs: number,
   receivedMs = nowMs,
-): FundingResult {
+): Promise<FundingResult> {
   if (coin === "") {
     throw new Error("market is required");
   }
-  const payload = client.post({ type: "metaAndAssetCtxs" });
+  const payload = await postJson(client, { type: "metaAndAssetCtxs" });
   const sides = expectList(payload, "metaAndAssetCtxs");
   if (sides.length !== 2) {
     throw new Error("metaAndAssetCtxs must contain meta and contexts");
@@ -240,29 +240,29 @@ export function funding(
   };
 }
 
-export function positions(
+export async function positions(
   client: InfoClient,
   address: string,
   nowMs: number,
   receivedMs = nowMs,
-): PositionsResult {
+): Promise<PositionsResult> {
   const user = requireAddress(address);
   const payload = expectRecord(
-    client.post({ type: "clearinghouseState", user }),
+    await postJson(client, { type: "clearinghouseState", user }),
     "clearinghouse state",
   );
   const rows = expectList(payload.assetPositions, "assetPositions").map(parsePosition);
   return { address: user, positions: rows, ...aged(payload, nowMs, receivedMs) };
 }
 
-export function fees(
+export async function fees(
   client: InfoClient,
   address: string,
   nowMs: number,
   receivedMs = nowMs,
-): FeesResult {
+): Promise<FeesResult> {
   const user = requireAddress(address);
-  const payload = expectRecord(client.post({ type: "userFees", user }), "user fees");
+  const payload = expectRecord(await postJson(client, { type: "userFees", user }), "user fees");
   const [takerRate, makerRate] = feeRates(payload);
   return {
     address: user,

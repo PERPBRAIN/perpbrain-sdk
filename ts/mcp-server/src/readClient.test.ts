@@ -81,9 +81,9 @@ test("burst is free and the next call waits one token", () => {
   assert.throws(() => new TokenBucket(0, 1, clock.clock, clock.sleep), /positive/);
 });
 
-test("recorded reads carry data age and the published base fees", () => {
+test("recorded reads carry data age and the published base fees", async () => {
   const info = fixtureClient();
-  const listed = markets(info, 50, 40);
+  const listed = await markets(info, 50, 40);
   assert.deepEqual(
     listed.markets.map((row) => row.name),
     ["BTC", "ETH"],
@@ -91,24 +91,24 @@ test("recorded reads carry data age and the published base fees", () => {
   assert.equal(listed.markets[0]?.szDecimals, 5);
   assert.equal(listed.ageMs, 10);
   assert.equal(listed.stale, false);
-  const book = orderBook(info, "BTC", BOOK_TIME + 1000, 2);
+  const book = await orderBook(info, "BTC", BOOK_TIME + 1000, 2);
   assert.equal(book.ageMs, 1000);
   assert.equal(book.stale, false);
   assert.equal(book.asOfMs, BOOK_TIME);
   assert.equal(book.bids[0]?.px, "81944.0");
   assert.equal(book.bids.length, 2);
-  const stale = orderBook(info, "BTC", BOOK_TIME + 20_000);
+  const stale = await orderBook(info, "BTC", BOOK_TIME + 20_000);
   assert.equal(stale.stale, true);
-  const eth = funding(info, "ETH", 80);
+  const eth = await funding(info, "ETH", 80);
   assert.equal(eth.funding, "0.0000125");
   assert.equal(eth.markPx, "2457.2");
   assert.equal(eth.openInterest, "1088724.0126");
-  const quoted = fees(info, EMPTY, 500, 100);
+  const quoted = await fees(info, EMPTY, 500, 100);
   assert.equal(quoted.takerBps, "4.5");
   assert.equal(quoted.makerBps, "1.5");
   assert.equal(fractionToBps("0.00045"), "4.5");
   assert.equal(quoted.ageMs, 400);
-  const held = positions(info, EMPTY, BOOK_TIME);
+  const held = await positions(info, EMPTY, BOOK_TIME);
   assert.deepEqual(held.positions, []);
   assert.equal(held.asOfMs, 1792159472954);
   assert.equal(INFO_URL.endsWith("/info"), true);
@@ -116,8 +116,8 @@ test("recorded reads carry data age and the published base fees", () => {
   const domain = "hyperliquid" + ".xyz";
   assert.throws(() => assertInfoUrl(`https://api.${domain}/exchange`), /info url/);
   assert.throws(() => info.post({ type: "order" }), /not allowed/);
-  assert.throws(() => orderBook(info, "", 1), /market/);
-  assert.throws(() => funding(info, "SOL", 1), /universe/);
+  await assert.rejects(() => orderBook(info, "", 1), /market/);
+  await assert.rejects(() => funding(info, "SOL", 1), /universe/);
 });
 
 test("fetch transport posts json through the injected fetch", async () => {

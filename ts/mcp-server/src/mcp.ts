@@ -1,7 +1,7 @@
 /** JSON-RPC for the read and sim tools. No order tool. */
 
 import { GuardBlocked, GuardSession } from "../../../sdk/src/guards.ts";
-import { costBreakdownFromReceipt } from "../../../sdk/src/receipt.ts";
+import { costBreakdownFromReceipt, verifyReceipt } from "../../../sdk/src/receipt.ts";
 import { guardedSimulate } from "./guardSim.ts";
 import { InfoClient } from "./info.ts";
 import { READ_SIM_TOOLS } from "./index.ts";
@@ -32,7 +32,11 @@ const DESCRIPTIONS: Record<(typeof READ_SIM_TOOLS)[number], string> = {
   get_limits: "Read the owner limits and the remaining headroom.",
   trigger_kill_switch: "Latch the kill switch. A tool call cannot clear it.",
   get_cost_breakdown: "Recompute the execution-cost breakdown from a simulation receipt. The result is SIMULATED.",
+  verify_receipt:
+    "Check a simulation receipt against manifest and inputs bytes. The check is verified and reproducible.",
 };
+
+export { DESCRIPTIONS };
 
 export interface JsonRpc {
   jsonrpc: "2.0";
@@ -41,10 +45,10 @@ export interface JsonRpc {
   error?: { code: number; message: string };
 }
 
-export function handleMessage(
+export async function handleMessage(
   message: unknown,
   options: { client?: InfoClient; nowMs?: number; session?: GuardSession } = {},
-): JsonRpc {
+): Promise<JsonRpc> {
   if (typeof message !== "object" || message === null || Array.isArray(message)) {
     return error(null, -32600, "request must be an object");
   }
@@ -58,17 +62,17 @@ export function handleMessage(
     return error(requestId, -32602, "params must be an object");
   }
   try {
-    return { jsonrpc: "2.0", id: requestId, result: dispatch(request.method, params, options) };
+    return { jsonrpc: "2.0", id: requestId, result: await dispatch(request.method, params, options) };
   } catch (caught) {
     const text = caught instanceof Error ? caught.message : "request failed";
     return error(requestId, -32602, text);
   }
 }
 
-export function handleLines(
+export async function handleLines(
   lines: readonly string[],
   options: { client?: InfoClient; nowMs?: number; session?: GuardSession } = {},
-): string[] {
+): Promise<string[]> {
   const shared = options.session ?? GuardSession.fromConfig();
   const responses: string[] = [];
   for (const line of lines) {
@@ -76,7 +80,9 @@ export function handleLines(
       continue;
     }
     try {
-      responses.push(JSON.stringify(handleMessage(JSON.parse(line) as unknown, { ...options, session: shared })));
+      responses.push(
+        JSON.stringify(await handleMessage(JSON.parse(line) as unknown, { ...options, session: shared })),
+      );
     } catch {
       responses.push(JSON.stringify(error(null, -32700, "parse error")));
     }
@@ -84,11 +90,11 @@ export function handleLines(
   return responses;
 }
 
-function dispatch(
+async function dispatch(
   method: string,
   params: Record<string, unknown>,
   options: { client?: InfoClient; nowMs?: number; session?: GuardSession },
-): unknown {
+): Promise<unknown> {
   switch (method) {
     case "initialize":
       return {
@@ -105,16 +111,16 @@ function dispatch(
         })),
       };
     case "tools/call":
-      return callTool(params, options);
+      return await callTool(params, options);
     default:
       throw new Error(`unknown method: ${method}`);
   }
 }
 
-function callTool(
+async function callTool(
   params: Record<string, unknown>,
   options: { client?: InfoClient; nowMs?: number; session?: GuardSession },
-): { content: Array<{ type: "text"; text: string }>; isError: boolean } {
+): Promise<{ content: Array<{ type: "text"; text: string }>; isError: boolean }> {
   if (typeof params.name !== "string") {
     throw new Error("tool name is required");
   }
@@ -126,7 +132,7 @@ function callTool(
   }
   const args = objectOf(params.arguments ?? {}, "arguments");
   try {
-    const text = JSON.stringify(invoke(params.name, args, options));
+    const text = JSON.stringify(await invoke(params.name, args, options));
     return { content: [{ type: "text", text }], isError: false };
   } catch (caught) {
     if (caught instanceof GuardBlocked) {
@@ -136,29 +142,29 @@ function callTool(
   }
 }
 
-function invoke(
+async function invoke(
   name: (typeof READ_SIM_TOOLS)[number],
   args: Record<string, unknown>,
   options: { client?: InfoClient; nowMs?: number; session?: GuardSession },
-): unknown {
+): Promise<unknown> {
   const nowMs = typeof args.nowMs === "number" ? args.nowMs : (options.nowMs ?? 0);
   const session = options.session ?? GuardSession.fromConfig();
   switch (name) {
     case "markets":
-      return markets(requireClient(options.client), nowMs);
+      return await markets(requireClient(options.client), nowMs);
     case "order_book":
-      return orderBook(
+      return await orderBook(
         requireClient(options.client),
         requiredString(args, "coin"),
         nowMs,
         typeof args.depth === "number" ? args.depth : 20,
       );
     case "funding":
-      return funding(requireClient(options.client), requiredString(args, "coin"), nowMs);
+      return await funding(requireClient(options.client), requiredString(args, "coin"), nowMs);
     case "positions":
-      return positions(requireClient(options.client), requiredString(args, "address"), nowMs);
+      return await positions(requireClient(options.client), requiredString(args, "address"), nowMs);
     case "fees":
-      return fees(requireClient(options.client), requiredString(args, "address"), nowMs);
+      return await fees(requireClient(options.client), requiredString(args, "address"), nowMs);
     case "get_limits":
       return limitsPayload(session, nowMs);
     case "trigger_kill_switch":
@@ -178,14 +184,14 @@ function invoke(
         intervalOf(args.fundingIntervalMs),
       );
     case "funding_extremes":
-      return fundingExtremes(
+      return await fundingExtremes(
         requireClient(options.client),
         requiredString(args, "coin"),
         nowMs,
         integerOf(args.windowHours ?? 24, "windowHours"),
       );
     case "book_imbalance":
-      return bookImbalance(
+      return await bookImbalance(
         requireClient(options.client),
         requiredString(args, "coin"),
         nowMs,
@@ -193,6 +199,12 @@ function invoke(
       );
     case "get_cost_breakdown":
       return costBreakdownFromReceipt(args.receipt);
+    case "verify_receipt":
+      return verifyReceipt(
+        args.receipt,
+        bytesOf(args.manifest, "manifest"),
+        bytesOf(args.inputs, "inputs"),
+      );
     default: {
       const unexpected: never = name;
       throw new Error(`unknown tool ${String(unexpected)}`);
@@ -395,6 +407,16 @@ function integerOf(value: unknown, label: string): number {
     throw new Error(`${label} must be an integer`);
   }
   return value;
+}
+
+function bytesOf(value: unknown, label: string): Uint8Array {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  if (typeof value === "string") {
+    return Buffer.from(value, "base64");
+  }
+  throw new Error(`${label} must be base64 text or bytes`);
 }
 
 function optionalString(value: unknown, label: string): string | null {

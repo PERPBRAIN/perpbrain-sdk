@@ -68,7 +68,7 @@ jobs:
           node --experimental-strip-types examples/mcp-fixtures.ts
       - name: no exchange endpoint
         run: |
-          if grep -rn --include='*.ts' --include='*.js' 'hyperliquid.xyz/exchange' sdk/src ts/mcp-server/src examples verify; then
+          if grep -rn --include='*.ts' --include='*.js' 'hyperliquid.xyz/exchange' sdk/src ts/mcp-server/src examples verify bin; then
             echo "exchange endpoint found"; exit 1
           fi
 

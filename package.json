@@ -1,0 +1,37 @@
+{
+  "name": "perpbrain-sdk",
+  "version": "0.1.0-rc1",
+  "private": true,
+  "mcpName": "io.github.PERPBRAIN/perpbrain-sdk",
+  "description": "PERPBRAIN read-only Hyperliquid MCP server and TypeScript SDK. Keyless public info reads and book simulation only.",
+  "license": "MIT",
+  "homepage": "https://github.com/PERPBRAIN/perpbrain-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PERPBRAIN/perpbrain-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/PERPBRAIN/perpbrain-sdk/issues"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "perpbrain-mcp": "./bin/perpbrain-mcp.mjs",
+    "perpbrain-sdk": "./bin/perpbrain-sdk.mjs"
+  },
+  "files": [
+    "bin",
+    "server.json",
+    "ts/mcp-server/src",
+    "sdk/src",
+    "fixtures",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "mcp": "node bin/perpbrain-mcp.mjs",
+    "test:mcp-bin": "node --experimental-strip-types ts/mcp-server/src/stdio.test.ts"
+  }
+}

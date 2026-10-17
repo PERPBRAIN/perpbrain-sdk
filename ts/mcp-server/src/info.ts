@@ -3,6 +3,7 @@
 import { TokenBucket } from "./rateLimit.ts";
 
 export const INFO_URL = "https://api.hyperliquid.xyz/info";
+export const TESTNET_INFO_URL = "https://api.hyperliquid-testnet.xyz/info";
 export const READ_TYPES = [
   "meta",
   "metaAndAssetCtxs",
@@ -14,7 +15,34 @@ export const READ_TYPES = [
 ] as const;
 
 export type ReadType = (typeof READ_TYPES)[number];
-export type Transport = (url: string, body: Readonly<Record<string, unknown>>) => unknown;
+export type Transport = (
+  url: string,
+  body: Readonly<Record<string, unknown>>,
+) => unknown | Promise<unknown>;
+
+export function resolveInfoUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const explicit = env.PERPBRAIN_INFO_URL;
+  if (explicit !== undefined && explicit !== "") {
+    assertInfoUrl(explicit);
+    return explicit;
+  }
+  const network = (env.PERPBRAIN_HL_NETWORK ?? "mainnet").toLowerCase();
+  if (network === "mainnet") {
+    return INFO_URL;
+  }
+  if (network === "testnet") {
+    return TESTNET_INFO_URL;
+  }
+  throw new Error("PERPBRAIN_HL_NETWORK must be mainnet or testnet");
+}
+
+export async function postJson(
+  client: InfoClient,
+  body: Readonly<Record<string, unknown>>,
+): Promise<unknown> {
+  const result = client.post(body);
+  return result instanceof Promise ? result : result;
+}
 
 export function assertInfoUrl(url: string): void {
   if (!url.endsWith("/info") || url.includes("/exchange")) {
