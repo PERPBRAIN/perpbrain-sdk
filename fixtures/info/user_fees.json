@@ -1,0 +1,9 @@
+{
+  "feeSchedule": {
+    "cross": "0.00045",
+    "add": "0.00015"
+  },
+  "userCrossRate": "0.00045",
+  "userAddRate": "0.00015",
+  "activeReferralDiscount": "0.0"
+}

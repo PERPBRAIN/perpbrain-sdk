@@ -1,0 +1,13 @@
+{
+  "data_snapshot_id": "2222222222222222222222222222222222222222222222222222222222222222",
+  "files": [
+    {
+      "file": "inputs.json",
+      "rows": 1,
+      "sha256": "c6b42a445f209ef5148ecc767ca187fbbe5f290e93ac52305eaf95a00b2a5633"
+    }
+  ],
+  "limits_hash": "2a2aa4853a9ca3a4a5e0bb9cb27ae59d201452cd0c18753bc1f313c755ac7edb",
+  "market_snapshot_id": "149df7a64ce65928fb7dec00a1809adb564a6b9b5df017607baeba43f4873953",
+  "result_sha256": "f785e785d0e5eeac7c2552cceffc10d1c0bb3d759e52ba13c36e37c46f38631d"
+}

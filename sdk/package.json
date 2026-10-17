@@ -1,0 +1,48 @@
+{
+  "name": "@perpbrain/sdk",
+  "version": "0.1.0-rc1",
+  "private": true,
+  "description": "PERPBRAIN TypeScript SDK. Read-only Hyperliquid data, a book simulator, owner limits, and a receipt verifier.",
+  "license": "MIT",
+  "homepage": "https://github.com/PERPBRAIN/perpbrain-sdk#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PERPBRAIN/perpbrain-sdk.git",
+    "directory": "sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/PERPBRAIN/perpbrain-sdk/issues"
+  },
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --experimental-strip-types --test ../ts/mcp-server/src/guards.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "5.9.3"
+  }
+}

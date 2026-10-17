@@ -1,0 +1,50 @@
+[
+  {
+    "universe": [
+      {
+        "szDecimals": 5,
+        "name": "BTC",
+        "maxLeverage": 40,
+        "marginTableId": 56
+      },
+      {
+        "szDecimals": 4,
+        "name": "ETH",
+        "maxLeverage": 25,
+        "marginTableId": 55
+      }
+    ]
+  },
+  [
+    {
+      "funding": "0.0000125",
+      "openInterest": "42321.38294",
+      "prevDayPx": "80169.0",
+      "dayNtlVlm": "2882411906.9023861885",
+      "premium": "-0.0001830161",
+      "oraclePx": "81960.0",
+      "markPx": "81943.0",
+      "midPx": "81944.5",
+      "impactPxs": [
+        "81944.0",
+        "81945.0"
+      ],
+      "dayBaseVlm": "35146.13677"
+    },
+    {
+      "funding": "0.0000125",
+      "openInterest": "1088724.0126",
+      "prevDayPx": "2339.6",
+      "dayNtlVlm": "1169629843.6263129711",
+      "premium": "-0.000362055",
+      "oraclePx": "2458.19",
+      "markPx": "2457.2",
+      "midPx": "2457.25",
+      "impactPxs": [
+        "2457.2",
+        "2457.3"
+      ],
+      "dayBaseVlm": "480627.7740999988"
+    }
+  ]
+]

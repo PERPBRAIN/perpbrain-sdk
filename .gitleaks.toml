@@ -1,0 +1,4 @@
+title = "perpbrain-sdk"
+
+[extend]
+useDefault = true

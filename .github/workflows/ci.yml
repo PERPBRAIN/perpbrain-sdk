@@ -1,0 +1,93 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: lint
+        working-directory: ts/mcp-server
+        run: npm ci && npm run lint
+
+  types:
+    name: types
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: sdk
+        working-directory: sdk
+        run: npm ci && npm run typecheck && npm run build
+      - name: mcp-server
+        working-directory: ts/mcp-server
+        run: npm ci && npm run typecheck
+      - name: examples
+        run: ts/mcp-server/node_modules/.bin/tsc -p examples/tsconfig.json
+
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+      - name: unit tests
+        working-directory: ts/mcp-server
+        run: npm ci && npm test
+      - name: examples
+        run: |
+          set -euo pipefail
+          node --experimental-strip-types examples/verify-receipt.ts fixtures/receipts/good
+          if node --experimental-strip-types examples/verify-receipt.ts fixtures/receipts/tampered-result; then
+            echo "tampered receipt was accepted"; exit 1
+          fi
+          node --experimental-strip-types examples/guarded-simulate.ts
+          node --experimental-strip-types examples/mcp-fixtures.ts
+      - name: no exchange endpoint
+        run: |
+          if grep -rn --include='*.ts' --include='*.js' 'hyperliquid.xyz/exchange' sdk/src ts/mcp-server/src examples verify; then
+            echo "exchange endpoint found"; exit 1
+          fi
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - name: gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+          GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
+        run: |
+          set -euo pipefail
+          asset="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfL -o "$asset" "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${asset}"
+          echo "${GITLEAKS_SHA256}  ${asset}" | sha256sum -c -
+          tar -xzf "$asset" gitleaks
+          ./gitleaks git --config .gitleaks.toml --redact --exit-code 1 .

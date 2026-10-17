@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PERPBRAIN receipt check</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #1c1915;
+      --muted: #5c564c;
+      --line: #d9d3c7;
+      --paper: #f7f4ee;
+      --card: #fffdf8;
+      --ok: #1f6b45;
+      --bad: #8d2f2f;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Iowan Old Style", Palatino, Georgia, serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+    main {
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.25rem 4rem;
+    }
+    h1 { font-size: 2rem; font-weight: 600; margin: 0 0 0.4rem; }
+    p { line-height: 1.5; }
+    .lede { color: var(--muted); margin-top: 0; }
+    .drop {
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      border: 1.5px dashed var(--line);
+      border-radius: 0.75rem;
+      background: var(--card);
+    }
+    .drop.hot { border-color: var(--ink); }
+    label.pick {
+      display: inline-block;
+      margin-top: 0.75rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    input[type="file"] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    ul.files, ul.mismatches { padding-left: 1.2rem; }
+    .status {
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin: 0.5rem 0;
+    }
+    .status.ok { color: var(--ok); }
+    .status.bad { color: var(--bad); }
+    code { font-family: ui-monospace, monospace; font-size: 0.92em; }
+    #costs { margin-top: 2rem; }
+    #costs h2 { font-size: 1.3rem; margin-bottom: 0.4rem; }
+    #costs dl { display: grid; grid-template-columns: 11rem 1fr; gap: 0.35rem 1rem; margin: 0; }
+    #costs dt { color: var(--muted); }
+    #costs dd { margin: 0; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Receipt check</h1>
+    <p class="lede">Verified and reproducible. Drop a receipt and its manifest. The check runs in this browser with WebCrypto SHA-256. Nothing is uploaded.</p>
+    <div class="drop" id="drop">
+      <p>Drop <code>receipt.json</code> and <code>manifest.json</code> here. <code>inputs.json</code> is optional.</p>
+      <label class="pick" for="files">Choose files</label>
+      <input id="files" type="file" multiple accept="application/json,.json">
+      <ul class="files" id="chosen"></ul>
+    </div>
+    <p id="status" class="status" role="status"></p>
+    <ul class="mismatches" id="mismatches"></ul>
+    <section id="costs" hidden>
+      <h2>Execution cost</h2>
+      <p class="lede">SIMULATED. Fees by tier, book-walk slippage versus mid, and funding paid or received. Queue position and liquidation stay <code>NOT_MODELLED</code>.</p>
+      <dl id="cost-lines"></dl>
+    </section>
+    <p>A match means the hashes and snapshot ids in these files agree. <code>verifyReceipt</code> in the SDK also reruns the simulation from the raw inputs. <code>costBreakdownFromReceipt</code> recomputes the breakdown. This page does not place an order.</p>
+  </main>
+  <script type="module">
+    import { checkReceipt } from "./check.js";
+    import { costRows } from "./costs.js";
+
+    const drop = document.querySelector("#drop");
+    const input = document.querySelector("#files");
+    const chosen = document.querySelector("#chosen");
+    const status = document.querySelector("#status");
+    const mismatches = document.querySelector("#mismatches");
+    const costs = document.querySelector("#costs");
+    const costLines = document.querySelector("#cost-lines");
+
+    drop.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      drop.classList.add("hot");
+    });
+    drop.addEventListener("dragleave", () => drop.classList.remove("hot"));
+    drop.addEventListener("drop", (event) => {
+      event.preventDefault();
+      drop.classList.remove("hot");
+      if (event.dataTransfer) take(event.dataTransfer.files);
+    });
+    input.addEventListener("change", () => take(input.files));
+
+    async function take(list) {
+      const files = [...(list || [])];
+      chosen.replaceChildren();
+      for (const file of files) {
+        const item = document.createElement("li");
+        item.textContent = file.name;
+        chosen.append(item);
+      }
+      const found = { receipt: null, manifest: null, inputs: null };
+      for (const file of files) {
+        const text = await file.text();
+        const lower = file.name.toLowerCase();
+        if (lower === "manifest.json") found.manifest = { text, bytes: await file.arrayBuffer() };
+        else if (lower === "inputs.json") found.inputs = { text, bytes: await file.arrayBuffer() };
+        else if (lower === "receipt.json" || found.receipt === null) {
+          found.receipt = { text, bytes: await file.arrayBuffer() };
+        }
+      }
+      if (!found.receipt || !found.manifest) {
+        show("MISMATCH", ["receipt and manifest are both required"]);
+        return;
+      }
+      const inputs = found.inputs ? new Uint8Array(found.inputs.bytes) : null;
+      const report = await checkReceipt(found.receipt.text, new Uint8Array(found.manifest.bytes), inputs);
+      show(report.status, report.mismatches, found.receipt.text);
+    }
+
+    function show(state, problems, receiptText) {
+      status.textContent = state;
+      status.className = "status " + (state === "VERIFIED" ? "ok" : "bad");
+      mismatches.replaceChildren();
+      for (const problem of problems) {
+        const item = document.createElement("li");
+        item.textContent = problem;
+        mismatches.append(item);
+      }
+      costLines.replaceChildren();
+      if (state !== "VERIFIED" || !receiptText) {
+        costs.hidden = true;
+        return;
+      }
+      let receipt;
+      try {
+        receipt = JSON.parse(receiptText);
+      } catch {
+        costs.hidden = true;
+        return;
+      }
+      for (const row of costRows(receipt)) {
+        const label = document.createElement("dt");
+        const value = document.createElement("dd");
+        label.textContent = row.label;
+        value.textContent = row.value;
+        costLines.append(label, value);
+      }
+      costs.hidden = false;
+    }
+  </script>
+</body>
+</html>

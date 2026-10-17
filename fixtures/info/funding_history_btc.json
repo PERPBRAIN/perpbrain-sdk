@@ -1,0 +1,26 @@
+[
+  {
+    "coin": "BTC",
+    "fundingRate": "0.00001",
+    "premium": "0.000001",
+    "time": 3600000000
+  },
+  {
+    "coin": "BTC",
+    "fundingRate": "0.00002",
+    "premium": "0.000002",
+    "time": 3603600000
+  },
+  {
+    "coin": "BTC",
+    "fundingRate": "0.00003",
+    "premium": "0.000003",
+    "time": 3607200000
+  },
+  {
+    "coin": "BTC",
+    "fundingRate": "0.0001",
+    "premium": "0.00001",
+    "time": 3610800000
+  }
+]

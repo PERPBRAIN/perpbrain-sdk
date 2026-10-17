@@ -1,0 +1,144 @@
+{
+  "data_snapshot_id": "c6b42a445f209ef5148ecc767ca187fbbe5f290e93ac52305eaf95a00b2a5633",
+  "inputs": {
+    "bars": [
+      {
+        "close": "100",
+        "high": "100",
+        "low": "100",
+        "open": "100"
+      },
+      {
+        "close": "100",
+        "high": "100",
+        "low": "100",
+        "open": "100"
+      }
+    ],
+    "book": {
+      "asks": [
+        {
+          "px": "100",
+          "sz": "5"
+        }
+      ],
+      "bids": [
+        {
+          "px": "100",
+          "sz": "5"
+        }
+      ]
+    },
+    "decision": {
+      "bar_index": 0,
+      "side": "long",
+      "size": "0.01",
+      "stop": null,
+      "target": null
+    },
+    "fee_version": null,
+    "funding": [],
+    "funding_interval_ms": 3600000,
+    "guard_context": {
+      "age_ms": 0,
+      "daily_loss_usd": "0",
+      "leverage": "1",
+      "open_positions": 1
+    },
+    "market": "ETH"
+  },
+  "kind": "perpbrain.sim-receipt",
+  "label": "SIMULATED",
+  "limits": {
+    "allowed_coins": [
+      "BTC",
+      "ETH"
+    ],
+    "daily_loss_pct": "5",
+    "loosened": false,
+    "max_leverage": "5",
+    "max_notional_usd": "25000",
+    "max_open_positions": 5,
+    "max_slippage_bps": "50",
+    "order_rate_per_sec": 5,
+    "preset": "standard"
+  },
+  "limits_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "manifest_sha256": "86bd46cadab71bc95f27a53114683b9d3e04d0e0a5e8e8c618086e743461634b",
+  "market_snapshot": [
+    {
+      "max_leverage": 40,
+      "name": "BTC",
+      "open_interest": "42321.38294"
+    },
+    {
+      "max_leverage": 25,
+      "name": "ETH",
+      "open_interest": "1088724.0126"
+    }
+  ],
+  "market_snapshot_id": "149df7a64ce65928fb7dec00a1809adb564a6b9b5df017607baeba43f4873953",
+  "raw_ref": "inputs.json",
+  "result": {
+    "fee_version": "hl-perp-tier0-base-2026-10-16",
+    "fill_source": "exchange",
+    "fills": [
+      {
+        "fee": "0.00045",
+        "kind": "entry",
+        "legs": [
+          {
+            "price": "100",
+            "size": "0.01"
+          }
+        ],
+        "liquidation": "NOT_MODELLED",
+        "liquidity": "taker",
+        "price": "100",
+        "queue_position": "NOT_MODELLED",
+        "reason": "next_bar",
+        "side": "buy",
+        "size": "0.01",
+        "slippage": "0"
+      }
+    ],
+    "funding_interval_ms": 3600000,
+    "funding_payments": [],
+    "label": "SIMULATED",
+    "liquidation": "NOT_MODELLED",
+    "maker_bps": "1.5",
+    "market": "ETH",
+    "open_size": "0.01",
+    "queue_position": "NOT_MODELLED",
+    "receipt": {
+      "fills": [
+        {
+          "fee": "0.00045",
+          "kind": "entry",
+          "legs": [
+            {
+              "price": "100",
+              "size": "0.01"
+            }
+          ],
+          "liquidation": "NOT_MODELLED",
+          "liquidity": "taker",
+          "price": "100",
+          "queue_position": "NOT_MODELLED",
+          "reason": "next_bar",
+          "side": "buy",
+          "size": "0.01",
+          "slippage": "0"
+        }
+      ],
+      "funding_payments": [],
+      "liquidation": "NOT_MODELLED",
+      "queue_position": "NOT_MODELLED"
+    },
+    "taker_bps": "4.5",
+    "unfilled_entry": "0"
+  },
+  "result_sha256": "f785e785d0e5eeac7c2552cceffc10d1c0bb3d759e52ba13c36e37c46f38631d",
+  "statement": "verified and reproducible",
+  "version": 1
+}
