@@ -23,7 +23,7 @@ The PERPBRAIN hosted service and engine are not in this repository. This reposit
 
 ## Requirements
 
-**Node 22+** is required. No API key or other secret is needed for anything in this repository.
+**Node 22+** is required (check with `node -v`). On Node 20 or older the examples and tests stop with `node: bad option: --experimental-strip-types`; upgrade Node to fix it. On Node 22 a harmless `ExperimentalWarning: Type Stripping` line is printed. No API key or other secret is needed for anything in this repository.
 
 ## Install the MCP server
 
@@ -35,6 +35,8 @@ cd perpbrain-sdk/ts/mcp-server && npm ci
 cd ../..
 node bin/perpbrain-mcp.mjs
 ```
+
+To smoke-test it, pipe an `initialize` request followed by `tools/list` into the launcher; it should list the 12 tools below.
 
 The launcher starts the stdio MCP server. Live reads use the public Hyperliquid `/info` endpoint (mainnet by default). Optional: set `PERPBRAIN_HL_NETWORK=testnet` for testnet.
 
