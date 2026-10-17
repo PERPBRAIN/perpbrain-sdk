@@ -12,7 +12,7 @@ The PERPBRAIN hosted service and engine are not in this repository. This reposit
 | --- | --- |
 | `sdk/` | `@perpbrain/sdk`: public info-endpoint reads, the book simulator, owner limits (`conservative`, `standard`, `pro`), the kill-switch latch, execution-cost breakdown, receipt verifier, and the SVG results card. |
 | `ts/mcp-server/` | MCP JSON-RPC handler and stdio MCP server (`perpbrain-mcp`) for the read and simulation tools. It does not accept an order tool. |
-| `server.json` | MCP Registry metadata for `io.github.PERPBRAIN/perpbrain-sdk` (npm, stdio, no secrets). |
+| `server.json` | MCP Registry metadata for `io.github.PERPBRAIN/perpbrain-sdk` (npm, stdio, no secrets). Optional logo path: [docs/assets.md](docs/assets.md). |
 | `Dockerfile` | Slim Node image for Glama and other hosts; stdio entrypoint, non-root user. |
 | `examples/` | Runnable TypeScript examples on recorded public data. |
 | `verify/web/` | Browser receipt checker (WebCrypto SHA-256), the same check as the PERPBRAIN verify page. |
@@ -33,7 +33,7 @@ cd ../..
 node bin/perpbrain-mcp.mjs
 ```
 
-The launcher runs the stdio MCP server on recorded fixtures in tests; at runtime it uses the public Hyperliquid `/info` endpoint (mainnet by default). Optional: set `PERPBRAIN_HL_NETWORK=testnet` for testnet.
+The launcher starts the stdio MCP server. Live reads use the public Hyperliquid `/info` endpoint (mainnet by default). Optional: set `PERPBRAIN_HL_NETWORK=testnet` for testnet.
 
 Equivalent from the repository root after `npm ci` in `ts/mcp-server/`:
 
