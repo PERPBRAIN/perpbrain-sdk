@@ -11,7 +11,9 @@ The PERPBRAIN hosted service and engine are not in this repository. This reposit
 | Path | Role |
 | --- | --- |
 | `sdk/` | `@perpbrain/sdk`: public info-endpoint reads, the book simulator, owner limits (`conservative`, `standard`, `pro`), the kill-switch latch, execution-cost breakdown, receipt verifier, and the SVG results card. |
-| `ts/mcp-server/` | MCP JSON-RPC handler for the read and simulation tools. It does not accept an order tool. |
+| `ts/mcp-server/` | MCP JSON-RPC handler and stdio MCP server (`perpbrain-mcp`) for the read and simulation tools. It does not accept an order tool. |
+| `server.json` | MCP Registry metadata for `io.github.PERPBRAIN/perpbrain-sdk` (npm, stdio, no secrets). |
+| `Dockerfile` | Slim Node image for Glama and other hosts; stdio entrypoint, non-root user. |
 | `examples/` | Runnable TypeScript examples on recorded public data. |
 | `verify/web/` | Browser receipt checker (WebCrypto SHA-256), the same check as the PERPBRAIN verify page. |
 | `fixtures/` | Recorded public info responses and good and tampered receipt fixtures. No keys, no accounts. |
@@ -53,6 +55,49 @@ Drive the MCP handler with recorded public data. The tool list is read and simul
 ```bash
 node --experimental-strip-types examples/mcp-fixtures.ts
 ```
+
+## MCP server (stdio)
+
+The standalone MCP server uses the official `@modelcontextprotocol/sdk` over stdio. It is keyless: live reads use the public Hyperliquid `/info` endpoint only (mainnet by default; set `PERPBRAIN_HL_NETWORK=testnet` for testnet). Simulation uses the vendored book simulator. Tools include `get_limits`, `trigger_kill_switch`, `get_cost_breakdown`, and `verify_receipt`. Order tools are refused.
+
+From a checkout:
+
+```bash
+(cd ts/mcp-server && npm ci)
+node bin/perpbrain-mcp.mjs
+# or
+node bin/perpbrain-sdk.mjs mcp
+```
+
+After a future npm release (this repository stays private until then):
+
+```bash
+npx perpbrain-sdk mcp
+```
+
+Simulation receipts are verified and reproducible. These are limits you set; losses are still possible.
+
+### Claude Desktop
+
+Add a server block (no API keys):
+
+```json
+{
+  "mcpServers": {
+    "perpbrain": {
+      "command": "node",
+      "args": ["/absolute/path/to/perpbrain-sdk/bin/perpbrain-mcp.mjs"],
+      "env": {
+        "PERPBRAIN_HL_NETWORK": "mainnet"
+      }
+    }
+  }
+}
+```
+
+### Cursor
+
+In Cursor MCP settings, use the same command and args as Claude Desktop. Point `command` at your local `node` binary and `args` at `bin/perpbrain-mcp.mjs`, or use `npx` with `-y` and `perpbrain-sdk` plus the `mcp` positional argument once the package is published.
 
 In the browser, serve `verify/web/` with any static server and drop the three receipt files on the page.
 

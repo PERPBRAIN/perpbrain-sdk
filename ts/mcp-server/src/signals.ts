@@ -1,7 +1,7 @@
 /** Public-book signals. Inputs are the info endpoint only. */
 
 import { formatDecimal, parseDecimal } from "./fees.ts";
-import { INFO_URL, type InfoClient } from "./info.ts";
+import { type InfoClient, postJson } from "./info.ts";
 import { orderBook } from "./queries.ts";
 import { HL_FUNDING_INTERVAL_MS } from "./simulate.ts";
 
@@ -34,20 +34,20 @@ export interface BookImbalance {
   stale: boolean;
 }
 
-export function fundingExtremes(
+export async function fundingExtremes(
   client: InfoClient,
   coin: string,
   nowMs: number,
   windowHours = 24,
   fundingIntervalMs = HL_FUNDING_INTERVAL_MS,
-): FundingExtremes {
+): Promise<FundingExtremes> {
   if (coin === "") {
     throw new Error("market is required");
   }
   const window = windowOf(windowHours);
   const interval = intervalOf(fundingIntervalMs);
   const start = Math.max(0, nowMs - (window + 2) * interval);
-  const payload = client.post({ type: "fundingHistory", coin, startTime: start });
+  const payload = await postJson(client, { type: "fundingHistory", coin, startTime: start });
   const prints = printsOf(payload, coin);
   if (prints.length < 3) {
     throw new Error("funding window needs at least 2 prints before the latest");
@@ -78,23 +78,23 @@ export function fundingExtremes(
     funding_zscore_unitless: formatDecimal(score),
     trailing_window_hours: window,
     sample_count: history.length,
-    source: INFO_URL,
+    source: client.url,
     ts: current.time,
     stale: age > interval,
   };
 }
 
-export function bookImbalance(
+export async function bookImbalance(
   client: InfoClient,
   coin: string,
   nowMs: number,
   bandBps = 10,
-): BookImbalance {
+): Promise<BookImbalance> {
   if (coin === "") {
     throw new Error("market is required");
   }
   const band = bandOf(bandBps);
-  const book = orderBook(client, coin, nowMs, 20);
+  const book = await orderBook(client, coin, nowMs, 20);
   const bids = book.bids.map((level) => ({ px: parseDecimal(level.px), sz: parseDecimal(level.sz) }));
   const asks = book.asks.map((level) => ({ px: parseDecimal(level.px), sz: parseDecimal(level.sz) }));
   if (bids.length === 0 || asks.length === 0) {
@@ -123,7 +123,7 @@ export function bookImbalance(
     ask_depth_usd: formatDecimal(askUsd),
     bid_over_ask_depth_ratio: askCoin === 0n ? null : formatDecimal((bidCoin * SCALE) / askCoin),
     mid_px_usd: formatDecimal(mid),
-    source: INFO_URL,
+    source: client.url,
     ts: book.asOfMs,
     stale: book.stale,
   };

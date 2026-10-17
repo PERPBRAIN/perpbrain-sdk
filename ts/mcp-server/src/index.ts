@@ -14,6 +14,7 @@ export const READ_SIM_TOOLS = [
   "get_limits",
   "trigger_kill_switch",
   "get_cost_breakdown",
+  "verify_receipt",
 ] as const;
 
 export type Command = "tools" | "simulate";

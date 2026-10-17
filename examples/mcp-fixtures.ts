@@ -31,11 +31,11 @@ const client = new InfoClient((_url, body) => {
   return JSON.parse(readFileSync(join(FIXTURES, file), "utf8")) as unknown;
 }, new TokenBucket());
 
-function rpc(id: number, method: string, params?: Record<string, unknown>): unknown {
+async function rpc(id: number, method: string, params?: Record<string, unknown>): Promise<unknown> {
   return handleMessage({ jsonrpc: "2.0", id, method, params }, { client, nowMs: 50 });
 }
 
-const listed = rpc(1, "tools/list") as { result: { tools: Array<{ name: string }> } };
+const listed = (await rpc(1, "tools/list")) as { result: { tools: Array<{ name: string }> } };
 process.stdout.write(`${JSON.stringify({ tools: listed.result.tools.map((tool) => tool.name) })}\n`);
-process.stdout.write(`${JSON.stringify(rpc(2, "tools/call", { name: "funding", arguments: { coin: "ETH" } }))}\n`);
-process.stdout.write(`${JSON.stringify(rpc(3, "tools/call", { name: "submit_order", arguments: {} }))}\n`);
+process.stdout.write(`${JSON.stringify(await rpc(2, "tools/call", { name: "funding", arguments: { coin: "ETH" } }))}\n`);
+process.stdout.write(`${JSON.stringify(await rpc(3, "tools/call", { name: "submit_order", arguments: {} }))}\n`);

@@ -10,6 +10,7 @@ import { TokenBucket } from "./rateLimit.ts";
 import { handleLines, handleMessage } from "./mcp.ts";
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "info");
+const RECEIPTS = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "fixtures", "receipts", "good");
 const EMPTY = `0x${"00".repeat(20)}`;
 
 function load(name: string): unknown {
@@ -37,8 +38,8 @@ function client(): InfoClient {
   }, new TokenBucket());
 }
 
-function call(name: string, args: Record<string, unknown>): Record<string, unknown> {
-  const response = handleMessage(
+async function call(name: string, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const response = await handleMessage(
     { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name, arguments: args } },
     { client: client(), nowMs: 50 },
   );
@@ -46,30 +47,31 @@ function call(name: string, args: Record<string, unknown>): Record<string, unkno
   return JSON.parse(result.content[0]?.text ?? "{}") as Record<string, unknown>;
 }
 
-test("tool list is read and sim only", () => {
-  const listed = handleMessage({ jsonrpc: "2.0", id: 7, method: "tools/list" });
+test("tool list is read and sim only", async () => {
+  const listed = await handleMessage({ jsonrpc: "2.0", id: 7, method: "tools/list" });
   const result = listed.result as { tools: Array<{ name: string }> };
   const names = result.tools.map((tool) => tool.name);
   assert.equal(names.includes("funding"), true);
   assert.equal(names.includes("simulate"), true);
+  assert.equal(names.includes("verify_receipt"), true);
   assert.equal(names.includes("order"), false);
   assert.equal(names.includes("submit_order"), false);
-  const started = handleMessage({ jsonrpc: "2.0", id: 1, method: "initialize" });
+  const started = await handleMessage({ jsonrpc: "2.0", id: 1, method: "initialize" });
   const info = started.result as { serverInfo: { name: string } };
   assert.equal(info.serverInfo.name, "perpbrain");
 });
 
-test("read and sim tools use recorded fixtures", () => {
-  const listed = call("markets", {});
+test("read and sim tools use recorded fixtures", async () => {
+  const listed = await call("markets", {});
   const markets = listed.markets as Array<{ name: string }>;
   assert.equal(markets[0]?.name, "BTC");
   assert.equal(listed.ageMs, 0);
-  const funded = call("funding", { coin: "ETH" });
+  const funded = await call("funding", { coin: "ETH" });
   assert.equal(funded.funding, "0.0000125");
-  const quoted = call("fees", { address: EMPTY });
+  const quoted = await call("fees", { address: EMPTY });
   assert.equal(quoted.takerBps, "4.5");
   assert.equal(quoted.makerBps, "1.5");
-  const simulated = call("simulate", {
+  const simulated = await call("simulate", {
     market: "BTC",
     decision: { barIndex: 0, side: "long", size: "1", stop: null, target: null },
     bars: [
@@ -84,15 +86,15 @@ test("read and sim tools use recorded fixtures", () => {
   assert.equal(simulated.queue_position, "NOT_MODELLED");
   assert.equal(simulated.liquidation, "NOT_MODELLED");
   assert.equal("pnl" in simulated, false);
-  const extremes = call("funding_extremes", { coin: "BTC", windowHours: 3, nowMs: 3_610_801_000 });
+  const extremes = await call("funding_extremes", { coin: "BTC", windowHours: 3, nowMs: 3_610_801_000 });
   assert.equal(extremes.funding_zscore_unitless, "8");
   assert.equal(String(extremes.source).endsWith("/info"), true);
   assert.equal(extremes.stale, false);
-  const imbalance = call("book_imbalance", { coin: "BTC", bandBps: 10, nowMs: 1_792_159_472_349 });
+  const imbalance = await call("book_imbalance", { coin: "BTC", bandBps: 10, nowMs: 1_792_159_472_349 });
   assert.equal(imbalance.band_bps, 10);
   assert.equal(imbalance.stale, false);
   assert.equal(typeof imbalance.bid_over_ask_depth_ratio, "string");
-  const blocked = call("simulate", {
+  const blocked = await call("simulate", {
     market: "BTC",
     leverage: "9",
     decision: { barIndex: 0, side: "long", size: "1", stop: null, target: null },
@@ -107,19 +109,19 @@ test("read and sim tools use recorded fixtures", () => {
   assert.deepEqual(blocked.guardViolations, ["leverage_exceeded"]);
   assert.equal(blocked.error, "GUARD_BLOCKED:LEVERAGE_EXCEEDED");
   assert.equal("headroom" in blocked, true);
-  const refused = handleMessage({
+  const refused = await handleMessage({
     jsonrpc: "2.0",
     id: 2,
     method: "tools/call",
     params: { name: "submit_order", arguments: {} },
   });
   assert.match(refused.error?.message ?? "", /no mainnet order path/);
-  const lines = handleLines(['{"jsonrpc":"2.0","id":4,"method":"tools/list"}', "not-json"]);
+  const lines = await handleLines(['{"jsonrpc":"2.0","id":4,"method":"tools/list"}', "not-json"]);
   assert.equal(JSON.parse(lines[0] ?? "{}").id, 4);
   assert.equal(JSON.parse(lines[1] ?? "{}").error.code, -32700);
 });
 
-test("get_cost_breakdown recomputes fees and slippage from the receipt", () => {
+test("get_cost_breakdown recomputes fees and slippage from the receipt", async () => {
   const receipt = {
     inputs: {
       market: "ETH",
@@ -135,7 +137,7 @@ test("get_cost_breakdown recomputes fees and slippage from the receipt", () => {
       guard_context: { leverage: "1", open_positions: 1, daily_loss_usd: "0", age_ms: 0 },
     },
   };
-  const response = handleMessage({
+  const response = await handleMessage({
     jsonrpc: "2.0",
     id: 4,
     method: "tools/call",
@@ -154,18 +156,40 @@ test("get_cost_breakdown recomputes fees and slippage from the receipt", () => {
   assert.equal(body.not_modelled[1]?.item, "liquidation");
 });
 
-test("get_limits is read only and the kill switch only engages", () => {
+test("verify_receipt checks fixture bytes", async () => {
+  const receipt = JSON.parse(readFileSync(join(RECEIPTS, "receipt.json"), "utf8")) as unknown;
+  const manifest = readFileSync(join(RECEIPTS, "manifest.json"));
+  const inputs = readFileSync(join(RECEIPTS, "inputs.json"));
+  const response = await handleMessage({
+    jsonrpc: "2.0",
+    id: 5,
+    method: "tools/call",
+    params: {
+      name: "verify_receipt",
+      arguments: {
+        receipt,
+        manifest: manifest.toString("base64"),
+        inputs: inputs.toString("base64"),
+      },
+    },
+  });
+  const result = response.result as { content: Array<{ text: string }> };
+  const body = JSON.parse(result.content[0]?.text ?? "{}") as { status: string };
+  assert.equal(body.status, "VERIFIED");
+});
+
+test("get_limits is read only and the kill switch only engages", async () => {
   const session = GuardSession.fromConfig();
-  const listed = callWith(session, "get_limits", {});
+  const listed = await callWith(session, "get_limits", {});
   assert.equal(listed.guardPreset, "standard");
   assert.equal(listed.killSwitch, false);
   assert.equal(listed.openPositionCount, 0);
   assert.equal(listed.aggregateNotionalUsd, "0");
   const limits = listed.limits as { maxOpenPositions: number };
   assert.equal(limits.maxOpenPositions, 5);
-  const engaged = callWith(session, "trigger_kill_switch", {});
+  const engaged = await callWith(session, "trigger_kill_switch", {});
   assert.deepEqual(engaged, { killSwitch: true, cleared: false });
-  const cleared = handleMessage(
+  const cleared = await handleMessage(
     {
       jsonrpc: "2.0",
       id: 9,
@@ -175,7 +199,7 @@ test("get_limits is read only and the kill switch only engages", () => {
     { client: client(), session },
   );
   assert.match(cleared.error?.message ?? "", /cannot be cleared/);
-  const preset = handleMessage(
+  const preset = await handleMessage(
     {
       jsonrpc: "2.0",
       id: 9,
@@ -185,7 +209,7 @@ test("get_limits is read only and the kill switch only engages", () => {
     { client: client(), session },
   );
   assert.match(preset.error?.message ?? "", /owner config/);
-  const blocked = callWith(session, "simulate", {
+  const blocked = await callWith(session, "simulate", {
     market: "BTC",
     decision: { barIndex: 0, side: "long", size: "0.01", stop: null, target: null },
     bars: [
@@ -197,8 +221,12 @@ test("get_limits is read only and the kill switch only engages", () => {
   assert.equal(blocked.error, "GUARD_BLOCKED:KILL_SWITCH");
 });
 
-function callWith(session: GuardSession, name: string, args: Record<string, unknown>): Record<string, unknown> {
-  const response = handleMessage(
+async function callWith(
+  session: GuardSession,
+  name: string,
+  args: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const response = await handleMessage(
     { jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } },
     { client: client(), session },
   );
