@@ -16,6 +16,12 @@ inputs.json
 node --experimental-strip-types examples/verify-receipt.ts fixtures/receipts/good
 ```
 
+To check every bundled fixture at once (`good` must be `VERIFIED`, each `tampered-*` must be `MISMATCH`):
+
+```bash
+node --experimental-strip-types examples/verify-all-fixtures.ts
+```
+
 ## What is checked
 
 | Check | Mismatch |
