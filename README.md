@@ -1,5 +1,7 @@
 # PERPBRAIN SDK
 
+[![PERPBRAIN/perpbrain-sdk MCP server](https://glama.ai/mcp/servers/PERPBRAIN/perpbrain-sdk/badges/score.svg)](https://glama.ai/mcp/servers/PERPBRAIN/perpbrain-sdk)
+
 TypeScript SDK, MCP handler, examples, and receipt verifier for [PERPBRAIN](https://perpbrain.com): read-only Hyperliquid data, a book simulator, and owner limits for AI agents. Simulation receipts are verified and reproducible: anyone can re-derive a receipt from its inputs and get the same hashes.
 
 This repository has no mainnet order path, no exchange keys, and no publish workflow. Simulation output is labelled `SIMULATED`. It is not advice.
@@ -13,6 +15,7 @@ The PERPBRAIN hosted service and engine are not in this repository. This reposit
 | `sdk/` | `@perpbrain/sdk`: public info-endpoint reads, the book simulator, owner limits (`conservative`, `standard`, `pro`), the kill-switch latch, execution-cost breakdown, receipt verifier, and the SVG results card. |
 | `ts/mcp-server/` | MCP JSON-RPC handler and stdio MCP server (`perpbrain-mcp`) for the read and simulation tools. It does not accept an order tool. |
 | `server.json` | MCP Registry metadata for `io.github.PERPBRAIN/perpbrain-sdk` (npm, stdio, no secrets). Optional logo path: [docs/assets.md](docs/assets.md). |
+| `glama.json` | Glama listing maintainer file (claim ownership of the [Glama listing](https://glama.ai/mcp/servers/PERPBRAIN/perpbrain-sdk)). |
 | `Dockerfile` | Slim Node image for Glama and other hosts; stdio entrypoint, non-root user. |
 | `examples/` | Runnable TypeScript examples on recorded public data. |
 | `verify/web/` | Browser receipt checker (WebCrypto SHA-256), the same check as the PERPBRAIN verify page. |
