@@ -1,0 +1,65 @@
+name: Security Audit (weekly)
+
+# Full high+ dependency audit. Runs weekly and on demand; never gates PRs.
+# Findings are written to ONE open issue labeled `security-audit` (created or
+# updated in place, closed when clean) instead of failing the run.
+on:
+  schedule:
+    - cron: "23 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: security-audit-weekly
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Security Audit (weekly report)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NPM_DIRS: "sdk ts/mcp-server"
+      PIP_REQS: ""
+      UV_DIRS: ""
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run full audit (high+)
+        run: |
+          set -u
+          : > findings.md
+          add() { printf '### %s\n\n```\n%s\n```\n\n' "$1" "$(printf '%s' "$2" | tail -n 120)" >> findings.md; }
+          for d in $NPM_DIRS; do
+            out=$(cd "$d" && npm audit --package-lock-only --audit-level=high 2>&1) || add "npm: $d" "$out"
+          done
+          for r in $PIP_REQS; do
+            out=$(pip-audit --progress-spinner off -r "$r" 2>&1) || add "pip: $r" "$out"
+          done
+          for d in $UV_DIRS; do
+            out=$( (cd "$d" && uv export --frozen --no-hashes --all-extras --format requirements-txt -o /tmp/uv-req.txt >/dev/null 2>&1) && pip-audit --progress-spinner off --no-deps --disable-pip -r /tmp/uv-req.txt 2>&1) || add "uv: $d" "$out"
+          done
+          if [ -s findings.md ]; then echo "FOUND=1" >> "$GITHUB_ENV"; else echo "FOUND=0" >> "$GITHUB_ENV"; fi
+          { echo "## Security audit"; if [ -s findings.md ]; then cat findings.md; else echo "No high+ findings."; fi; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Open or update the security-audit issue
+        run: |
+          set -u
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          if [ "$(gh api "repos/${GITHUB_REPOSITORY}" -q .has_issues)" != "true" ]; then
+            echo "::warning::Issues are disabled on this repo; findings are in the run summary only."
+            exit 0
+          fi
+          gh label create security-audit --color B60205 --description "Weekly dependency audit findings" 2>/dev/null || true
+          num=$(gh issue list --label security-audit --state open --limit 1 --json number -q '.[0].number // empty')
+          if [ "$FOUND" = "1" ]; then
+            { echo "Weekly full dependency audit (high+) found issues. Last updated by ${RUN_URL}"; echo; cat findings.md; } > body.md
+            if [ -n "$num" ]; then gh issue edit "$num" --body-file body.md; else gh issue create --title "Security audit: high+ dependency vulnerabilities" --label security-audit --body-file body.md; fi
+          elif [ -n "$num" ]; then
+            gh issue close "$num" --comment "Weekly audit is clean as of ${RUN_URL}."
+          fi
