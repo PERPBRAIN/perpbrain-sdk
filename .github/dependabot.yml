@@ -8,6 +8,10 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    ignore:
+      # Breaking majors are reviewed by hand; security updates still arrive grouped.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
     groups:
       security-updates:
         applies-to: security-updates
@@ -23,6 +27,10 @@ updates:
       day: "monday"
     open-pull-requests-limit: 5
     groups:
+      actions-major:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: ["major"]
       security-updates:
         applies-to: security-updates
         patterns: ["*"]
