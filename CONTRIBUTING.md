@@ -24,3 +24,14 @@ for f in examples/*.ts; do node --experimental-strip-types "$f"; done
 ## Review
 
 A change to CI, guard code, or a dependency file waits for owner review. Do not add a dependency without confirming it on the registry. Do not weaken, delete, or skip a test. Never commit a key, a wallet, a seed phrase, or a private account address.
+
+## Commit identity (agents and automation)
+
+All commits to this repo, including ones made by AI agents and automation, must use:
+
+```
+git config user.name "TJGVNR"
+git config user.email "TJGVNR@users.noreply.github.com"
+```
+
+i.e. `TJGVNR <TJGVNR@users.noreply.github.com>`. Do not commit under other names or emails.
