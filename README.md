@@ -4,7 +4,7 @@
 
 TypeScript SDK, MCP handler, examples, and receipt verifier for [PERPBRAIN](https://perpbrain.com): read-only Hyperliquid data, a book simulator, and owner limits for AI agents. Simulation receipts are verified and reproducible: anyone can re-derive a receipt from its inputs and get the same hashes.
 
-This repository has no mainnet order path, no exchange keys, and no publish workflow. Simulation output is labelled `SIMULATED`. It is not advice.
+This repository has no mainnet order path, no exchange keys, and no publish workflow. Simulation output is labelled `SIMULATED`. See the [risk disclosure](https://perpbrain.com/legal/risk-disclosure).
 
 The PERPBRAIN hosted service and engine are not in this repository. This repository is the public client surface.
 
@@ -191,6 +191,6 @@ Report a vulnerability as described in [SECURITY.md](SECURITY.md). Contribution 
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. Copyright (c) 2026 GVNR DAO LLC. See [LICENSE](LICENSE).
 
-Simulation only. Not advice. No live trading.
+PerpBrain is an official project of GVNR DAO LLC, a Marshall Islands DAO LLC (registration number 10115-24). Simulation only, labelled `SIMULATED`; no live trading.

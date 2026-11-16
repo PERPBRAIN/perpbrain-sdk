@@ -12,4 +12,4 @@ npm ci
 npm run build
 ```
 
-Simulation output is labelled `SIMULATED`. It is not advice and it does not place a live order.
+Simulation output is labelled `SIMULATED` and places no order. See the [risk disclosure](https://perpbrain.com/legal/risk-disclosure).
