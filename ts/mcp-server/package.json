@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "description": "PERPBRAIN MCP launcher and TypeScript client. Phase 1 is read-only and simulation-only.",
+  "author": "GVNR DAO LLC <info@perpbrain.com> (https://perpbrain.com)",
   "type": "module",
   "engines": {
     "node": ">=22"

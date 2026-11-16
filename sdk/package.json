@@ -3,6 +3,7 @@
   "version": "0.1.0-rc1",
   "private": true,
   "description": "PERPBRAIN TypeScript SDK. Read-only Hyperliquid data, a book simulator, owner limits, and a receipt verifier.",
+  "author": "GVNR DAO LLC <info@perpbrain.com> (https://perpbrain.com)",
   "license": "MIT",
   "homepage": "https://github.com/PERPBRAIN/perpbrain-sdk#readme",
   "repository": {

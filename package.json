@@ -4,6 +4,7 @@
   "private": true,
   "mcpName": "io.github.PERPBRAIN/perpbrain-sdk",
   "description": "PERPBRAIN read-only Hyperliquid MCP server and TypeScript SDK. Keyless public info reads and book simulation only.",
+  "author": "GVNR DAO LLC <info@perpbrain.com> (https://perpbrain.com)",
   "license": "MIT",
   "homepage": "https://github.com/PERPBRAIN/perpbrain-sdk#readme",
   "repository": {
